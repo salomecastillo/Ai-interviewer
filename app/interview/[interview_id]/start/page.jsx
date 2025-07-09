@@ -1,186 +1,296 @@
-"use client"
+"use client";
 
-import Vapi from '@vapi-ai/web';
-import { InterviewDataContext } from '@/context/InterviewDataContext'
-import { Mic, Phone, Timer } from 'lucide-react';
-import React, { useContext, useEffect, useState } from 'react'
-import Image from 'next/image'
-import QuestionList from '@/app/(main)/dashboard/create-interview/_components/QuestionList';
-import AlertConfirmation from './_components/AlertConfirmation';
-import { toast } from 'sonner';
-import axios from 'axios';
-import { supabase } from '@/services/supabaseClient';
-import { useParams } from 'next/navigation';
-import { useRouter } from 'next/navigation';
+import React, { useContext, useEffect, useRef, useState } from "react";
+import { Timer, Mic, Phone, Loader2Icon } from "lucide-react";
+import { InterviewDataContext } from "@/context/InterviewDataContext";
+import Image from "next/image";
+import Vapi from "@vapi-ai/web";
+import { toast } from "sonner";
+import axios from "axios";
+import { useParams, useRouter } from "next/navigation";
+import { createClient } from "@supabase/supabase-js";
+
+const supabase = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL,
+  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+);
 
 function StartInterview() {
-  const{interviewInfo, setInterviewInfo}=useContext(InterviewDataContext);
-  const vapi = new Vapi(process.env.NEXT_PUBLIC_VAPI_PUBLIC_KEY);
-  const[activeUser,setActiveUser] = useState(false);
-  const[conversation, setConversation] = useState();
-  const{interview_id}=useParams();
-  const router=useRouter();
+  const { interviewInfo } = useContext(InterviewDataContext);
+  const vapiRef = useRef(null);
+  const intervalRef = useRef(null);
+  const callStartedRef = useRef(false);
 
-  useEffect(()=>{
-    interviewInfo&&startCall();
-  },[interviewInfo])
+  const [activeUser, setActiveUser] = useState(false);
+  const [secondsElapsed, setSecondsElapsed] = useState(0);
+  const [conversation, setConversation] = useState([]);
+  const { interview_id } = useParams();
+  const router = useRouter();
+  const [loading, setLoading] = useState(false);
 
-  const startCall=()=>{
-    let questionList;
-    interviewInfo?.interviewData?.questionList.forEach((item, index)=>{
-      questionList= item?.question + "," + questionList;
-  });
-
-  const assistantOptions = {
-      name: "AI Recruiter",
-      firstMessage: "Hi" + interviewInfo?.userName+ ", how are you? Ready for your interview on" + interviewInfo?.interviewData?.jobPosition + "?",
-      transcriber: {
-          provider: "deepgram",
-          model: "nova-2",
-          language: "en-US",
-      },
-      voice: {
-          provider: "playht",
-          voiceId: "jennifer",
-      },
-      model: {
-          provider: "openai",
-          model: "gpt-4",
-          messages: [
-              {
-                  role: "system",
-                  content: `
-                  You are an AI voice assistant conducting interviews.
-                  Your job is to ask candidates provided interview questions, assess their responses.
-                  Begin the conversation with a friendly introduction, setting a relaxed yet professional tone. Example:
-                  "Hey there! Welcome to your `+ interviewInfo?.interviewData?.jobPosition +`interview. Let's get started with a few questions!"
-                  Ask one question at a time and wait for the candidate's response before proceeding. Keep the questions clear and concise. Below Are the questions ask one by one:
-                  Questions: `+ questionList +`
-                  If the candidate struggles, offer hints or rephrase the question without giving away the answer. Example:
-                  "Need a hint? Think about how React tracks component updates!"
-                  Provide brief, encouraging feedback after each answer. Example:
-                  "Nice! That's a solid answer."
-                  "Hmm, not quite! Want to try again?"
-                  Keep the conversation natural and engaging—use casual phrases like "Alright, next up..." or "Let's tackle a tricky one!"
-                  After 5-7 questions, wrap up the interview smoothly by summarizing their performance. Example:
-                  "That was great! You handled some tough questions well. Keep sharpening your skills!"
-                  End on a positive note:
-                  "Thanks for chatting! Hope to see you crushing projects soon!"
-                  Key Guidelines:
-                  Be friendly, engaging, and witty
-                  Keep responses short and natural, like a real conversation
-                  Adapt based on the candidate's confidence level
-                  Ensure the interview remains focused on React
-                  `.trim(),
-              },
-          ],
-      },
+  const formatTime = (totalSeconds) => {
+    const hours = String(Math.floor(totalSeconds / 3600)).padStart(2, "0");
+    const minutes = String(Math.floor((totalSeconds % 3600) / 60)).padStart(2, "0");
+    const seconds = String(totalSeconds % 60).padStart(2, "0");
+    return `${hours}.${minutes}.${seconds}`;
   };
 
-  vapi.start(assistantOptions)
+  useEffect(() => {
+    vapiRef.current = new Vapi(process.env.NEXT_PUBLIC_VAPI_PUBLIC_KEY);
+    const vapi = vapiRef.current;
 
-  }
+    const onError = (err) => {
+      console.error("Vapi SDK error event:", err);
+      toast.error("Vapi AI failed: " + (err?.errorMsg || "Unknown error"));
+    };
 
-  const stopInterview=()=>{
-    vapi.stop();
-    router.replace('/interview/' + interview_id + '/completed');
-  }
+    const onCallStart = () => {
+      toast("Call Connected...");
+      setSecondsElapsed(0);
+      intervalRef.current = setInterval(() => {
+        setSecondsElapsed((prev) => prev + 1);
+      }, 1000);
+    };
 
-  vapi.on("call-start", () =>{
-    console.log("Call has started.");
-    toast('Interview connected...')
-  });
+    const onSpeechStart = () => setActiveUser(false);
+    const onSpeechEnd = () => setActiveUser(true);
 
-  vapi.on("speech-start", ()=>{
-    console.log("Assistant speech has started.");
-    setActiveUser(false);
-  });
+    const onCallEnd = () => {
+      toast("Interview Ended");
+      clearInterval(intervalRef.current);
+      callStartedRef.current = false;
+      GenerateFeedback();
+    };
 
-  vapi.on("speech-end", () => {
-    console.log("Assistant speech has ended.");
-    setActiveUser(true);
-  });
+    const onMessage = (message) => {
+      if (message?.conversation) {
+        setConversation(message.conversation);
+      }
+    };
 
-  vapi.on("call-end", () =>{
-    console.log("Call has ended.");
-    toast('Interview Ended')
-    GenerateFeedback();
-  });
+    vapi.on("error", onError);
+    vapi.on("call-start", onCallStart);
+    vapi.on("speech-start", onSpeechStart);
+    vapi.on("speech-end", onSpeechEnd);
+    vapi.on("call-end", onCallEnd);
+    vapi.on("message", onMessage);
 
-  vapi.on("message", (message) => {
-    console.log(message?.conversation);
-    setConversation(message?.conversation);
-  });
+    return () => {
+      vapi.off("error", onError);
+      vapi.off("call-start", onCallStart);
+      vapi.off("speech-start", onSpeechStart);
+      vapi.off("speech-end", onSpeechEnd);
+      vapi.off("call-end", onCallEnd);
+      vapi.off("message", onMessage);
+      clearInterval(intervalRef.current);
+    };
+  }, []);
 
-  const GenerateFeedback=async()=>{
-    const result = await axios.post('/api/ai-feedback',{
-      conversation:conversation
-    })
-    console.log(result?.data);
-    const Content = result.data.content;
-    const FINAL_CONTENT = Content.replace('```json', '').replace('```', '')
-    console.log(FINAL_CONTENT)
-    //save to database
-    
-    
-    const { data, error } = await supabase
-    .from('interview-feedback')
-    .insert([
-      { userName: interviewInfo?.userName, 
-        userEmail: interviewInfo?.userEmail,
-        interview_id: interview_id,
-        feedback: JSON.parse(FINAL_CONTENT),
-        recommended: false
+  useEffect(() => {
+    if (interviewInfo && !callStartedRef.current) {
+      callStartedRef.current = true;
+      startCall();
+    }
+  }, [interviewInfo]);
+
+  const startCall = async () => {
+    const vapi = vapiRef.current;
+    let questionList = "";
+
+    (interviewInfo?.interviewData?.questionList || []).forEach((item) => {
+      questionList += item?.question + ", ";
+    });
+
+    const assistantOptions = {
+      name: "AI Recruiter",
+      firstMessage: `Hi ${interviewInfo?.userName}, how are you? Ready for your interview on ${interviewInfo?.interviewData?.jobPosition}?`,
+      voice: {
+        provider: "playht",
+        voiceId: "jennifer",
       },
-    ])
-    .select()
-    console.log(data);
-    router.replace('/interview/'+interview_id+'/completed');
-    setLoading(false);
-            
-  }
-  
+      model: {
+        provider: "openai",
+        model: "gpt-4",
+        messages: [
+          {
+            role: "system",
+            content: `
+You are an AI voice assistant conducting interviews.
+Your job is to ask candidates provided interview questions and assess their responses.
+Begin the conversation with a friendly introduction, setting a relaxed yet professional tone.
+Ask one question at a time and wait for the candidate’s response before proceeding.
+Questions: ${questionList}
+If the candidate struggles, offer hints or rephrase the question without giving away the answer.
+Provide brief, encouraging feedback after each answer.
+Keep the conversation natural and engaging.
+After 5–7 questions, wrap up the interview smoothly and end on a positive note.
+Keep it friendly, engaging, and React-focused.
+            `.trim(),
+          },
+        ],
+      },
+    };
+
+    try {
+      await vapi.start(assistantOptions);
+    } catch (err) {
+      console.error("Vapi start error:", err);
+      toast.error("Failed to start interview.");
+      callStartedRef.current = false;
+    }
+  };
+
+  const GenerateFeedback = async () => {
+    setLoading(true);
+    try {
+      const result = await axios.post("/api/ai-feedback", { conversation });
+      const content = result.data.content;
+
+      let feedbackData;
+      try {
+        const FINAL_CONTENT = content.replace(/```json/g, "").replace(/```/g, "").trim();
+        feedbackData = JSON.parse(FINAL_CONTENT);
+      } catch {
+        feedbackData = { raw: content };
+      }
+
+      const { data, error } = await supabase
+        .from("interview-feedback")
+        .insert([
+          {
+            userName: interviewInfo?.userName,
+            userEmail: interviewInfo?.userEmail,
+            interview_id: interview_id,
+            feedback: JSON.stringify(feedbackData),
+            recommended: false,
+          },
+        ])
+        .select();
+
+      if (error) {
+        console.error("Supabase insert error:", error);
+        toast.error("Failed to save feedback.");
+        setLoading(false);
+        return;
+      }
+
+      router.replace(`/interview/${interview_id}/completed`);
+    } catch (err) {
+      console.error("Feedback generation error:", err);
+      toast.error("Error generating feedback.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const stopInterview = async () => {
+    if (loading) return;
+    setLoading(true);
+    try {
+      if (vapiRef.current) {
+        try {
+          await vapiRef.current.stop();
+          console.log("Vapi stopped.");
+        } catch (e) {
+          console.warn("Vapi stop failed", e);
+        }
+
+        if (typeof vapiRef.current.cancelSpeech === "function") {
+          try {
+            await vapiRef.current.cancelSpeech();
+            console.log("Speech canceled.");
+          } catch (err) {
+            console.warn("Cancel speech failed", err);
+          }
+        }
+
+        if (vapiRef.current.meeting && typeof vapiRef.current.meeting.leave === "function") {
+          try {
+            await vapiRef.current.meeting.leave();
+            console.log("Daily meeting left.");
+          } catch (e) {
+            console.warn("Daily meeting leave failed", e);
+          }
+        }
+      }
+
+      if (window.speechSynthesis && window.speechSynthesis.speaking) {
+        window.speechSynthesis.cancel();
+        console.log("SpeechSynthesis canceled.");
+      }
+
+      clearInterval(intervalRef.current);
+      callStartedRef.current = false;
+      setSecondsElapsed(0);
+      setActiveUser(false);
+      toast("Call Force-Stopped");
+
+      setTimeout(() => {
+        window.location.href = `/interview/${interview_id}/completed`;
+      }, 300);
+    } catch (err) {
+      console.error("Error force stopping interview:", err);
+      toast.error("Failed to force end call.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
-    <div className='p-20 lg:px-48 xl:px-56'>
-      <h2 className='font-bold text-xl flex justify-between'> AI Interview Session 
-        <span className='flex gap-2 items-center'>
-          <Timer/>
-          00:00:00
+    <div className="p-20 lg:px-48 xl:px-56">
+      <h2 className="font-bold text-2xl flex justify-between">
+        Interview Session
+        <span className="flex items-center gap-2">
+          <Timer />
+          {formatTime(secondsElapsed)}
         </span>
       </h2>
 
-      <div className='grid grid-cols-1 md:grid-cols-2 gap-7 mt-5'>
-        <div className='bg-white h-[600px] rounded-lg border flex flex-col gap-3 items-center justify-center'>
-          <div className='relative'>
-          {!activeUser &&<span className='absolute inset-0 rounded-full bg-blue-500 animate-ping'/>}
-          <Image src={'/ai.jpg'} alt='ai'
-            width={400}
-            height={400}
-            className='w-[60px] h-[60px] rounded-full object-cover'
-          />
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-7 mt-5">
+        <div className="bg-white h-[400px] rounded-lg border flex flex-col gap-3 items-center justify-center">
+          <div className="relative w-[60px] h-[60px]">
+            {!activeUser && (
+              <span className="absolute inset-0 rounded-full bg-blue-500 opacity-75 animate-ping" />
+            )}
+            <Image
+              src="/Face.jpg"
+              alt="face"
+              width={100}
+              height={100}
+              className="w-[60px] h-[60px] rounded-full object-cover"
+            />
           </div>
-          <h2> AI Recruiter </h2>
+          <h2>Recruiter</h2>
         </div>
-        <div>
-          <div className='bg-white h-[600px] rounded-lg border flex flex-col gap-3 items-center justify-center'>
-            <div className='relative'>
-            {activeUser &&<span className='absolute inset-0 rounded-full bg-blue-500 animate-ping'/>}
-              <h2 className='tex-2xl bg-primary text-white p-3 rounded-full px-5'>{interviewInfo?.userName[0]}</h2>
-            </div>  
-            <h2>{interviewInfo?.userName}</h2>
+
+        <div className="bg-white h-[400px] rounded-lg border flex flex-col gap-3 items-center justify-center">
+          <div className="relative w-[60px] h-[60px]">
+            {activeUser && (
+              <span className="absolute inset-0 rounded-full bg-blue-500 opacity-75 animate-ping" />
+            )}
+            <h2 className="text-2xl bg-primary text-white p-3 rounded-full px-5">
+              {interviewInfo?.userName?.[0] || "U"}
+            </h2>
           </div>
+          <h2>{interviewInfo?.userName}</h2>
         </div>
       </div>
 
-      <div className='flex items-center gap-5 justify-center mt-7'>
-        <Mic className='h-12 w-12 p-3 bg-gray-500 text-white rounded-full cursor-pointer'/>
-        <AlertConfirmation stopInterview={()=>stopInterview()}>
-          <Phone className='h-12 w-12 p-3 bg-red-500 text-white rounded-full cursor-pointer'/>
-        </AlertConfirmation>
+      <div className="flex items-center gap-5 mt-5 justify-center">
+        <Mic className="h-12 w-12 p-3 bg-gray-500 text-white rounded-full cursor-pointer" />
+        {!loading ? (
+          <Phone
+            className="h-12 w-12 p-3 bg-red-500 text-white rounded-full cursor-pointer"
+            onClick={stopInterview}
+          />
+        ) : (
+          <Loader2Icon className="animate-spin" />
+        )}
       </div>
-      <h2 className='text-sm text-gray-400 text-center mt-5'>Interview in Progress..</h2>
+
+      <h2 className="text-sm text-gray-400 mt-5 text-center">Interview in Progress...</h2>
     </div>
-  )
+  );
 }
 
-export default StartInterview
+export default StartInterview;

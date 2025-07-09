@@ -19,7 +19,7 @@ function CandidateList({ candidateList }) {
           <div className="text-left">
             <h2 className="font-bold">{candidate?.userName}</h2>
             <h2 className="text-sm text-gray-500">
-              Completed On: {moment(candidate?.created_id).format('MMMM Do YYYY')}
+              Completed On: {moment(candidate?.created_at).format('MMMM Do YYYY')}
             </h2>
           </div>
         </div>
