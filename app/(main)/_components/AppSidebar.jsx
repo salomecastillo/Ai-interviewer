@@ -46,7 +46,7 @@ import { usePathname } from "next/navigation"
                     {SideBarOptions.map((option, index)=>(
                         <SidebarMenuItem key={index} className='p-1'>
                             <SidebarMenuButton asChild className={`p-5 ${path==option.path && 'bg-blue-200'}`}>
-                                <NextLink href={option.path}>
+                                <NextLink href={`https://ai-interviewer-nine-drab.vercel.app${option.path}`}>
                                     <option.icon className={`${path == option.path && 'text-primary'}`}/>
                                     {/* ${} is conditional styling to the particular tag we are workign on */}
                                     <span className={`text-[16px] ${path == option.path && 'text-primary'}`}>{option.name}</span>

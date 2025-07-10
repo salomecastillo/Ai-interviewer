@@ -174,7 +174,7 @@ Keep it friendly, engaging, and React-focused.
         return;
       }
 
-      router.replace(`/interview/${interview_id}/completed`);
+      router.replace(`https://ai-interviewer-nine-drab.vercel.app/interview/${interview_id}/completed`);
     } catch (err) {
       console.error("Feedback generation error:", err);
       toast.error("Error generating feedback.");
@@ -226,7 +226,7 @@ Keep it friendly, engaging, and React-focused.
       toast("Call Force-Stopped");
 
       setTimeout(() => {
-        window.location.href = `/interview/${interview_id}/completed`;
+        window.location.href = `https://ai-interviewer-nine-drab.vercel.app/interview/${interview_id}/completed`;
       }, 300);
     } catch (err) {
       console.error("Error force stopping interview:", err);

@@ -58,7 +58,7 @@ function Interview() {
             userEmail: userEmail,
             interviewData:Interviews[0]
         });
-        router.push('/interview/' + interview_id + '/start')
+        window.location.href = `https://ai-interviewer-nine-drab.vercel.app/interview/${interview_id}/start`;
         setLoading(false);
     }
 

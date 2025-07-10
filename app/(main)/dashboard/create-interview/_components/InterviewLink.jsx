@@ -57,10 +57,10 @@ function InterviewLink({interview_id, formData}) {
         </div>
 
         <div className='flex w-full gap-5 justify-between mt-6'>
-            <Link href={'/dashboard'}>
+            <Link href={'https://ai-interviewer-nine-drab.vercel.app/dashboard'}>
                 <Button variant={'outline'}> <ArrowLeft/> Back to Dashboard</Button>
             </Link>
-            <Link href={'/create-interview'}>
+            <Link href={'https://ai-interviewer-nine-drab.vercel.app/create-interview'}>
                 <Button> <Plus/> Create New Interview </Button>
             </Link>
         </div>

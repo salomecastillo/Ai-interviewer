@@ -12,13 +12,13 @@ function Login() {
   useEffect(() => {
     const { data: listener } = supabase.auth.onAuthStateChange((event, session) => {
       if (event === 'SIGNED_IN') {
-        router.replace('/dashboard');
+        window.location.href = 'https://ai-interviewer-nine-drab.vercel.app/dashboard';
       }
     });
     return () => {
       listener?.subscription.unsubscribe();
     };
-  }, [router]);
+  }, []);
 
   /** use to sign in with google  */
   const signInWithGoogle=async()=>{
