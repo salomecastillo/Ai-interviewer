@@ -20,6 +20,7 @@ function StartInterview() {
   const vapiRef = useRef(null);
   const intervalRef = useRef(null);
   const callStartedRef = useRef(false);
+  const feedbackGeneratedRef = useRef(false); // 👈 Prevent duplicate feedback
 
   const [activeUser, setActiveUser] = useState(false);
   const [secondsElapsed, setSecondsElapsed] = useState(0);
@@ -55,11 +56,11 @@ function StartInterview() {
     const onSpeechStart = () => setActiveUser(false);
     const onSpeechEnd = () => setActiveUser(true);
 
-    const onCallEnd = () => {
+    const onCallEnd = async () => {
       toast("Interview Ended");
       clearInterval(intervalRef.current);
       callStartedRef.current = false;
-      GenerateFeedback();
+      await GenerateFeedback(); // ✅ Ensure feedback on natural end
     };
 
     const onMessage = (message) => {
@@ -141,6 +142,9 @@ Keep it friendly, engaging, and React-focused.
   };
 
   const GenerateFeedback = async () => {
+    if (feedbackGeneratedRef.current) return; // ✅ Prevent duplicate feedback
+    feedbackGeneratedRef.current = true;
+
     setLoading(true);
     try {
       const result = await axios.post("/api/ai-feedback", { conversation });
@@ -170,11 +174,10 @@ Keep it friendly, engaging, and React-focused.
       if (error) {
         console.error("Supabase insert error:", error);
         toast.error("Failed to save feedback.");
-        setLoading(false);
         return;
       }
 
-      router.replace(`/interview/${interview_id}/completed`);
+      console.log("Feedback saved to Supabase");
     } catch (err) {
       console.error("Feedback generation error:", err);
       toast.error("Error generating feedback.");
@@ -190,7 +193,6 @@ Keep it friendly, engaging, and React-focused.
       if (vapiRef.current) {
         try {
           await vapiRef.current.stop();
-          console.log("Vapi stopped.");
         } catch (e) {
           console.warn("Vapi stop failed", e);
         }
@@ -198,7 +200,6 @@ Keep it friendly, engaging, and React-focused.
         if (typeof vapiRef.current.cancelSpeech === "function") {
           try {
             await vapiRef.current.cancelSpeech();
-            console.log("Speech canceled.");
           } catch (err) {
             console.warn("Cancel speech failed", err);
           }
@@ -207,7 +208,6 @@ Keep it friendly, engaging, and React-focused.
         if (vapiRef.current.meeting && typeof vapiRef.current.meeting.leave === "function") {
           try {
             await vapiRef.current.meeting.leave();
-            console.log("Daily meeting left.");
           } catch (e) {
             console.warn("Daily meeting leave failed", e);
           }
@@ -216,7 +216,6 @@ Keep it friendly, engaging, and React-focused.
 
       if (window.speechSynthesis && window.speechSynthesis.speaking) {
         window.speechSynthesis.cancel();
-        console.log("SpeechSynthesis canceled.");
       }
 
       clearInterval(intervalRef.current);
@@ -225,9 +224,10 @@ Keep it friendly, engaging, and React-focused.
       setActiveUser(false);
       toast("Call Force-Stopped");
 
-      setTimeout(() => {
-        window.location.href = `/interview/${interview_id}/completed`;
-      }, 300);
+      // ✅ Save feedback before redirect
+      await GenerateFeedback();
+
+      router.replace(`/interview/${interview_id}/completed`);
     } catch (err) {
       console.error("Error force stopping interview:", err);
       toast.error("Failed to force end call.");

@@ -16,16 +16,6 @@ export const SideBarOptions=[
         icon: LayoutDashboard,
         path:'/all-interview'
     },
-    {
-        name:'Billing',
-        icon: LayoutDashboard,
-        path:'/billing'
-    },
-    {
-        name:'Settings',
-        icon: LayoutDashboard,
-        path:'/settings'
-    },
 ]
 
 export const InterviewType=[

@@ -12,8 +12,9 @@ import {
     SidebarMenuItem,
   } from "@/components/ui/sidebar"
 import { SideBarOptions } from "@/services/Constants"
-import { Link, Plus} from "lucide-react"
+import {Plus} from "lucide-react"
 import NextLink from "next/link"
+import Link from "next/link";
 
   import Image from "next/image"
 import { usePathname } from "next/navigation"
@@ -31,11 +32,12 @@ import { usePathname } from "next/navigation"
                 className="w-[90px] h-[90px]"
                 />
 
-                <Button className="w-full mt-5" asChild> 
-                  <NextLink href="/dashboard/create-interview">
-                    <Plus/> Create New Interview
-                  </NextLink>
-                </Button>
+            <Button asChild className="w-full mt-5">
+              <Link href="/dashboard/create-interview">
+                <Plus className="mr-2" />
+                Create New Interview
+              </Link>
+            </Button>
         </SidebarHeader>
         <SidebarContent>
           <SidebarGroup>
