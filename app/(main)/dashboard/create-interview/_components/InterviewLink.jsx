@@ -7,7 +7,7 @@ import Link from 'next/link'
 import { toast } from 'sonner'
 
 function InterviewLink({interview_id, formData}) {
-    const url=(process.env.NEXT_PUBLIC_HOST_URL || 'http://localhost:3000')+'/' + interview_id
+    const url=(process.env.NEXT_PUBLIC_HOST_URL || 'https://ai-interviewer-nine-drab.vercel.app')+'/' + interview_id
 
     const GetInterviewURL =() =>{
         return url;

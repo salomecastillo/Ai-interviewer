@@ -8,7 +8,7 @@ import React from 'react'
 import { toast } from 'sonner'
 
 function InterviewCard({interview, viewDetail=false}) {
-    const url=(process.env.NEXT_PUBLIC_HOST_URL || 'http://localhost:3000') + '/' + interview?.interview_id
+    const url=(process.env.NEXT_PUBLIC_HOST_URL || 'https://ai-interviewer-nine-drab.vercel.app') + '/' + interview?.interview_id
         const copyLink=()=>{
           navigator.clipboard.writeText(url);
           toast('Text copied')
