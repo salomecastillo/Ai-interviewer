@@ -253,7 +253,7 @@ Keep it friendly, engaging, and React-focused.
               <span className="absolute inset-0 rounded-full bg-blue-500 opacity-75 animate-ping" />
             )}
             <Image
-              src="/Face.jpg"
+              src="/ai.jpg"
               alt="face"
               width={100}
               height={100}

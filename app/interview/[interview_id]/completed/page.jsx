@@ -1,25 +1,13 @@
 import React from 'react';
 import { Home, ArrowRight, Info } from 'lucide-react';
+import Image from 'next/image';
 
 const InterviewComplete = () => {
   return (
     <div className="bg-midnight text-white font-sans antialiased flex flex-col min-h-screen">
       <main className="flex-grow flex flex-col items-center justify-center space-y-8 py-16">
         <div className="rounded-full bg-seaGreen p-4">
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            className="h-14 w-14 text-[#A3EB1E]"
-            fill="none"
-            viewBox="0 0 24 24"
-            stroke="currentColor"
-          >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth="2"
-              d="M5 13l4 4L19 7"
-            />
-          </svg>
+          <Image src={'/check.png'} alt='check' width={200} height={200} className='border rounded-full'/>
         </div>
 
         <h1 className="text-3xl font-bold text-center text-black">Interview Complete!</h1>
@@ -29,11 +17,11 @@ const InterviewComplete = () => {
 
         <div className="rounded-xl overflow-hidden shadow-lg">
           <img
-            src="/complete.jpg"
+            src="/interview.png"
             alt="Interview Illustration"
             className="w-full h-auto object-cover max-w-100"
             style={{
-              backgroundImage: 'url("complete.jpg")',
+              backgroundImage: 'url("interview.png")',
               backgroundSize: 'cover',
               backgroundPosition: 'center',
               width: '1200px',
@@ -63,7 +51,7 @@ const InterviewComplete = () => {
 
           <h2 className="text-2xl font-semibold text-center text-[#A3EB1E]">What's Next?</h2>
           <p className="text-gray-700 text-center">
-            The Voxicruit will review your interview responses and will contact you soon regarding the next steps.
+            Your Recruiter will get back to you with your results shortly.
           </p>
           <p className="text-gray-500 text-sm text-center">
             <svg
