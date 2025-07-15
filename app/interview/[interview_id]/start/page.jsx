@@ -132,7 +132,7 @@ Keep it friendly, engaging, and React-focused.
     };
 
     try {
-      await vapi.start(assistantOptions);
+      await vapi.start(null, assistantOptions);
     } catch (err) {
       console.error("Vapi start error:", err);
       toast.error("Failed to start interview.");
