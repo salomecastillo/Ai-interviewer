@@ -82,7 +82,9 @@ function StartInterview() {
   }, []);
 
   useEffect(() => {
+    console.log("Checking for interview info:", interviewInfo);
     if (interviewInfo && !callStartedRef.current) {
+      console.log("Interview info found, starting call...");
       callStartedRef.current = true;
       startCall();
     }
