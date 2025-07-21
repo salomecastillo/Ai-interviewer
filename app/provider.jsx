@@ -21,7 +21,6 @@ function Provider({ children }){
             .select("*")
             .eq('email', user?.email)
 
-            console.log(Users)
             //if user no exist, create new user 
             if(Users?.length==0){
                 const {data, error} = await supabase.from("Users")
@@ -32,7 +31,6 @@ function Provider({ children }){
                         picture: user?.user_metadata?.picture
                     }
                 ])
-                console.log(data);
                 setUser(data);
                 return;
             }
