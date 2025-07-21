@@ -12,7 +12,7 @@ function Login() {
   useEffect(() => {
     const { data: listener } = supabase.auth.onAuthStateChange((event, session) => {
       if (event === 'SIGNED_IN') {
-        window.location.href = 'https://ai-interviewer-nine-drab.vercel.app/dashboard';
+        window.location.href = '/dashboard';
       }
     });
     return () => {
