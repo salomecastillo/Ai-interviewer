@@ -115,7 +115,7 @@ function StartInterview() {
 You are an AI voice assistant conducting interviews.
 Your job is to ask candidates provided interview questions and assess their responses.
 Begin the conversation with a friendly introduction, setting a relaxed yet professional tone.
-Ask one question at a time and wait for the candidate’s response before proceeding.
+Ask one question at a time and wait for the candidate's response before proceeding.
 Questions: ${questionList}
 If the candidate struggles, offer hints or rephrase the question without giving away the answer.
 Provide brief, encouraging feedback after each answer.
@@ -129,6 +129,7 @@ Keep it friendly, engaging, and React-focused.
     };
 
     try {
+      // Fixed: Pass null as first parameter and assistantOptions as second parameter
       await vapi.start(null, assistantOptions);
     } catch (err) {
       console.error("Vapi start error:", err);
